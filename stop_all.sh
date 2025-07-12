@@ -7,7 +7,7 @@ pkill -f "vite"
 
 # Stop backend
 echo "Stopping backend..."
-cd /Users/haruka/Desktop/myApps/tabegoe/backend
+cd /Users/haruka/dev/tabegoe/backend
 docker compose down
 
 echo "All services stopped."

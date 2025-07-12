@@ -1,4 +1,4 @@
 #!/bin/bash
 echo "Starting tabegoe Backend..."
-cd /Users/haruka/Desktop/myApps/tabegoe/backend
+cd /Users/haruka/dev/tabegoe/backend
 docker compose up --build
