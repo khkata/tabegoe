@@ -16,7 +16,6 @@ export const Recommendations: React.FC = () => {
   const { currentUser, currentGroup, currentRecommendation, setCurrentRecommendation, setCurrentUser } = useStore();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState<string | null>(null);
-  const [isNavigating, setIsNavigating] = useState(false);
   const [userVoteStatus, setUserVoteStatus] = useState<any>(null);
   const [isVoting, setIsVoting] = useState(false);
   const [interviewStatus, setInterviewStatus] = useState<any>(null);
@@ -153,6 +152,13 @@ export const Recommendations: React.FC = () => {
       if (!confirmed) {
         return;
       }
+    } else {
+      // 初回投票の場合も確認ダイアログを表示
+      const restaurantName = currentRecommendation?.restaurants?.find(r => r.restaurant_id === restaurantId)?.name || 'このお店';
+      const confirmed = window.confirm(`${restaurantName}に投票しますか？`);
+      if (!confirmed) {
+        return;
+      }
     }
 
     try {
@@ -201,22 +207,6 @@ export const Recommendations: React.FC = () => {
       }
     } finally {
       setIsVoting(false); // 投票処理中フラグを解除
-    }
-  };
-
-  const goToVoting = async () => {
-    if (isNavigating) return; // 重複ナビゲーションを防ぐ
-    
-    console.log('Navigating to vote page for group:', groupId);
-    setIsNavigating(true);
-    
-    try {
-      // 少し待ってからナビゲートすることで、状態の同期を確実にする
-      await new Promise(resolve => setTimeout(resolve, 100));
-      navigate(`/group/${groupId}/vote`);
-    } catch (error) {
-      console.error('Navigation error:', error);
-      setIsNavigating(false);
     }
   };
 
@@ -352,16 +342,6 @@ export const Recommendations: React.FC = () => {
 
         {/* アクション */}
         <div className="space-y-4">
-          <Button
-            variant="secondary"
-            size="lg"
-            className="w-full"
-            onClick={goToVoting}
-            disabled={isNavigating}
-          >
-            {isNavigating ? '読み込み中...' : '投票結果を見る'}
-          </Button>
-          
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-start space-x-2">
               <span className="text-blue-600 text-sm">💡</span>
