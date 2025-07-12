@@ -71,7 +71,7 @@ export const Interview: React.FC = () => {
 
     // ユーザーメッセージを即座に表示
     const tempUserMessage: InterviewMessage = {
-      message_id: 'temp-user',
+      message_id: `temp-user-${Date.now()}`,
       interview_id: currentInterview.interview_id,
       role: 'user',
       content: userMessage,
@@ -84,11 +84,21 @@ export const Interview: React.FC = () => {
         message: userMessage,
       });
       
-      // 一時メッセージを削除して実際のレスポンスを追加
-      setMessages(prev => prev.filter(msg => msg.message_id !== 'temp-user'));
-      setMessages(prev => [...prev, response]);
+      // 一時メッセージを削除
+      setMessages(prev => prev.filter(msg => !msg.message_id.startsWith('temp-user')));
+      
+      // ユーザーメッセージとAIレスポンスの両方を追加
+      const userMessageFinal: InterviewMessage = {
+        message_id: `user-${Date.now()}`,
+        interview_id: currentInterview.interview_id,
+        role: 'user',
+        content: userMessage,
+        created_at: new Date().toISOString(),
+      };
+      
+      setMessages(prev => [...prev, userMessageFinal, response]);
     } catch (error) {
-      setMessages(prev => prev.filter(msg => msg.message_id !== 'temp-user'));
+      setMessages(prev => prev.filter(msg => !msg.message_id.startsWith('temp-user')));
       toast.error('メッセージの送信に失敗しました');
     } finally {
       setIsSending(false);
@@ -142,8 +152,8 @@ export const Interview: React.FC = () => {
         </div>
 
         {/* チャットエリア */}
-        <div className="flex-1 bg-white rounded-2xl shadow-lg flex flex-col min-h-0">
-          <div className="flex-1 p-4 overflow-y-auto space-y-4">
+        <div className="flex-1 bg-gray-50 rounded-2xl shadow-lg flex flex-col min-h-0">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3">
             {messages.length === 0 && (
               <div className="text-center text-gray-500 py-8">
                 <p>AIからの質問をお待ちください...</p>
@@ -153,34 +163,65 @@ export const Interview: React.FC = () => {
             {messages.map((message, index) => (
               <div
                 key={`${message.message_id}-${index}`}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-3`}
               >
-                <div
-                  className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
-                    message.role === 'user'
-                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
-                      : 'bg-gray-100 text-gray-800 border'
-                  }`}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className="text-sm">🤖</span>
-                      <span className="text-xs font-medium text-gray-600">AI</span>
+                {message.role === 'assistant' && (
+                  <div className="flex items-end space-x-2">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mb-1">
+                      <span className="text-white text-sm">🤖</span>
                     </div>
-                  )}
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {message.content}
-                  </p>
-                </div>
+                    <div className="max-w-xs lg:max-w-md">
+                      <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-md shadow-sm border border-gray-200 relative">
+                        <div className="absolute -left-2 bottom-0 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-white border-t-8 border-t-white"></div>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800">
+                          {message.content}
+                        </p>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1 ml-2">
+                        AI
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {message.role === 'user' && (
+                  <div className="flex items-end space-x-2 flex-row-reverse">
+                    <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0 mb-1">
+                      <span className="text-white text-sm">👤</span>
+                    </div>
+                    <div className="max-w-xs lg:max-w-md">
+                      <div className="bg-gradient-to-r from-red-500 to-red-600 px-4 py-3 rounded-2xl rounded-br-md shadow-sm relative">
+                        <div className="absolute -right-2 bottom-0 w-0 h-0 border-r-8 border-r-transparent border-l-8 border-l-red-600 border-t-8 border-t-red-600"></div>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap text-white">
+                          {message.content}
+                        </p>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1 mr-2 text-right">
+                        {currentUser?.nickname || 'あなた'}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
             
             {isSending && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 px-4 py-3 rounded-2xl border">
-                  <div className="flex items-center space-x-2">
-                    <LoadingSpinner size="sm" />
-                    <span className="text-sm text-gray-600">AIが考え中...</span>
+              <div className="flex justify-start mb-3">
+                <div className="flex items-end space-x-2">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mb-1">
+                    <span className="text-white text-sm">🤖</span>
+                  </div>
+                  <div className="max-w-xs lg:max-w-md">
+                    <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-md shadow-sm border border-gray-200 relative">
+                      <div className="absolute -left-2 bottom-0 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-white border-t-8 border-t-white"></div>
+                      <div className="flex items-center space-x-2">
+                        <LoadingSpinner size="sm" />
+                        <span className="text-sm text-gray-600">考え中...</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 ml-2">
+                      AI
+                    </div>
                   </div>
                 </div>
               </div>
@@ -190,23 +231,27 @@ export const Interview: React.FC = () => {
           </div>
 
           {/* 入力エリア */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex space-x-2">
-              <textarea
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="メッセージを入力..."
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                rows={1}
-                disabled={isSending}
-              />
+          <div className="p-4 bg-white border-t border-gray-200 rounded-b-2xl">
+            <div className="flex items-end space-x-3">
+              <div className="flex-1 relative">
+                <textarea
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="メッセージを入力..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none bg-gray-50"
+                  rows={1}
+                  disabled={isSending}
+                  style={{ minHeight: '44px', maxHeight: '120px' }}
+                />
+              </div>
               <Button
                 onClick={sendMessage}
                 disabled={!inputMessage.trim() || isSending}
-                className="px-6"
+                className="px-6 py-3 rounded-full bg-red-500 hover:bg-red-600 text-white font-medium transition-colors duration-200"
+                size="sm"
               >
-                送信
+                {isSending ? <LoadingSpinner size="sm" /> : '送信'}
               </Button>
             </div>
           </div>
