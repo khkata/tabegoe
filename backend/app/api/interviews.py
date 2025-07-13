@@ -4,6 +4,7 @@ from sqlalchemy import and_
 from typing import List
 import uuid
 import json
+import logging
 from datetime import datetime
 
 from app.db.database import get_db
@@ -15,6 +16,7 @@ from app.schemas.interview import (
 )
 from app.clients.openai_client import openai_client
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -27,9 +29,12 @@ async def create_interview(
     """
     ユーザーのインタビューを作成
     """
+    logger.info(f"Creating interview for user {user_id} in group {group_id}")
+    
     # ユーザーとグループの存在確認
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
+        logger.error(f"User not found: {user_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
@@ -37,13 +42,29 @@ async def create_interview(
     
     group = db.query(Group).filter(Group.group_id == group_id).first()
     if not group:
+        logger.error(f"Group not found: {group_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Group not found"
         )
     
     # ユーザーがグループのメンバーかチェック
-    if user not in group.members:
+    # より明示的にメンバーシップをチェック
+    from app.models.group import group_members
+    membership_exists = db.query(group_members).filter(
+        group_members.c.group_id == group_id,
+        group_members.c.user_id == user_id
+    ).first()
+    
+    logger.info(f"Membership check - User: {user_id}, Group: {group_id}, Exists: {membership_exists is not None}")
+    
+    if not membership_exists:
+        logger.error(f"User {user_id} is not a member of group {group_id}")
+        # デバッグ情報として実際のメンバー一覧を出力
+        actual_members = db.query(group_members).filter(
+            group_members.c.group_id == group_id
+        ).all()
+        logger.error(f"Actual members in group {group_id}: {[m.user_id for m in actual_members]}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User is not a member of this group"
@@ -78,7 +99,10 @@ async def create_interview(
                 role=msg.role,
                 content=msg.content,
                 sequence_number=msg.sequence_number,
-                created_at=msg.created_at
+                created_at=msg.created_at,
+                is_mock=msg.is_mock == "true" if msg.is_mock else None,
+                ai_source=msg.ai_source,
+                ai_model=msg.ai_model
             ) for msg in messages]
         )
     
@@ -100,7 +124,10 @@ async def create_interview(
         interview_id=db_interview.interview_id,
         role=MessageRole.assistant,
         content="こんにちは！レストラン選びのお手伝いをさせていただきます。あなたの好みや要望を教えてください。",
-        sequence_number=1
+        sequence_number=1,
+        is_mock="true",
+        ai_source="system",
+        ai_model=None
     )
     
     db.add(initial_message)
@@ -122,7 +149,10 @@ async def create_interview(
             role=initial_message.role,
             content=initial_message.content,
             sequence_number=initial_message.sequence_number,
-            created_at=initial_message.created_at
+            created_at=initial_message.created_at,
+            is_mock=True,
+            ai_source="system",
+            ai_model=None
         )]
     )
 
@@ -204,8 +234,11 @@ async def chat_with_interview(
         message_id=str(uuid.uuid4()),
         interview_id=interview_id,
         role=MessageRole.assistant,
-        content=ai_response,
-        sequence_number=next_sequence + 1
+        content=ai_response.content,
+        sequence_number=next_sequence + 1,
+        is_mock="true" if ai_response.is_mock else "false",
+        ai_source=ai_response.source,
+        ai_model=ai_response.model
     )
     
     db.add(ai_message)
@@ -218,7 +251,10 @@ async def chat_with_interview(
         role=ai_message.role,
         content=ai_message.content,
         sequence_number=ai_message.sequence_number,
-        created_at=ai_message.created_at
+        created_at=ai_message.created_at,
+        is_mock=ai_response.is_mock,
+        ai_source=ai_response.source,
+        ai_model=ai_response.model
     )
 
 
@@ -483,8 +519,11 @@ async def chat_simple(
             message_id=str(uuid.uuid4()),
             interview_id=interview_id,
             role=MessageRole.assistant,
-            content=ai_response,
-            sequence_number=next_sequence + 1
+            content=ai_response.content,
+            sequence_number=next_sequence + 1,
+            is_mock="true" if ai_response.is_mock else "false",
+            ai_source=ai_response.source,
+            ai_model=ai_response.model
         )
         
         db.add(ai_message)
@@ -497,7 +536,10 @@ async def chat_simple(
             role=ai_message.role,
             content=ai_message.content,
             sequence_number=ai_message.sequence_number,
-            created_at=ai_message.created_at
+            created_at=ai_message.created_at,
+            is_mock=ai_response.is_mock,
+            ai_source=ai_response.source,
+            ai_model=ai_response.model
         )
         
     except Exception as e:
@@ -509,7 +551,10 @@ async def chat_simple(
             interview_id=interview_id,
             role=MessageRole.assistant,
             content=fallback_response,
-            sequence_number=next_sequence + 1
+            sequence_number=next_sequence + 1,
+            is_mock="true",
+            ai_source="fallback",
+            ai_model=None
         )
         
         db.add(ai_message)
@@ -522,7 +567,10 @@ async def chat_simple(
             role=ai_message.role,
             content=ai_message.content,
             sequence_number=ai_message.sequence_number,
-            created_at=ai_message.created_at
+            created_at=ai_message.created_at,
+            is_mock=True,
+            ai_source="fallback",
+            ai_model=None
         )
 
 

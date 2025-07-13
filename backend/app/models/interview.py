@@ -47,5 +47,10 @@ class Message(Base):
     sequence_number = Column(Integer, nullable=False)  # メッセージの順序
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
+    # AI応答メタデータ
+    is_mock = Column(String(10), nullable=True)  # AI応答がモックかどうか（"true"/"false"）
+    ai_source = Column(String(20), nullable=True)  # AI応答のソース（"openai"/"mock"）
+    ai_model = Column(String(50), nullable=True)  # 使用されたAIモデル
+    
     # リレーション
     interview = relationship("Interview", back_populates="messages")

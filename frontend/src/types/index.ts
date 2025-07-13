@@ -22,6 +22,9 @@ export interface InterviewMessage {
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
+  is_mock?: boolean;  // AI応答がモックかどうか
+  ai_source?: string;  // AI応答のソース（"openai" or "mock"）
+  ai_model?: string;   // 使用されたAIモデル
 }
 
 export interface Interview {

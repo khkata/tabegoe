@@ -54,8 +54,17 @@ export const groupApi = {
 // Interview API
 export const interviewApi = {
   startInterview: async (groupId: string, userId: string): Promise<Interview> => {
-    const response = await api.post(`/interviews/groups/${groupId}/users/${userId}/interviews`);
-    return response.data;
+    try {
+      console.log(`Starting interview - Group: ${groupId}, User: ${userId}`);
+      const response = await api.post(`/interviews/groups/${groupId}/users/${userId}/interviews`);
+      console.log('Interview started successfully:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('Interview start error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      throw error;
+    }
   },
   
   sendMessage: async (interviewId: string, data: ChatMessageRequest): Promise<InterviewMessage> => {

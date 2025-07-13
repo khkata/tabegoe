@@ -176,9 +176,31 @@ export const Interview: React.FC = () => {
                         <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800">
                           {message.content}
                         </p>
+                        {/* 開発時のデバッグ情報 */}
+                        {import.meta.env.DEV && message.is_mock !== undefined && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                            <div><strong>Mock:</strong> {String(message.is_mock)}</div>
+                            <div><strong>Source:</strong> {message.ai_source}</div>
+                            {message.ai_model && <div><strong>Model:</strong> {message.ai_model}</div>}
+                          </div>
+                        )}
                       </div>
                       <div className="text-xs text-gray-500 mt-1 ml-2">
                         AI
+                        {message.is_mock !== undefined && (
+                          <span className={`ml-2 px-2 py-0.5 rounded text-xs ${
+                            message.is_mock 
+                              ? 'bg-yellow-100 text-yellow-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {message.is_mock ? 'Mock' : 'GPT-3.5'}
+                          </span>
+                        )}
+                        {message.ai_source && (
+                          <span className="ml-1 text-xs text-gray-400">
+                            ({message.ai_source})
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

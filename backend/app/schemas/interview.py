@@ -32,6 +32,9 @@ class MessageResponse(MessageBase):
     interview_id: str
     sequence_number: int
     created_at: datetime
+    is_mock: Optional[bool] = None  # AI応答がモックかどうか
+    ai_source: Optional[str] = None  # AI応答のソース（"openai" or "mock"）
+    ai_model: Optional[str] = None  # 使用されたAIモデル
     
     class Config:
         from_attributes = True
