@@ -1,7 +1,8 @@
 import requests
 import json
 from typing import List, Dict, Optional
-from app.core.config import settings
+from .config import settings
+from ..clients.hotpepper_client import hotpepper_client
 import logging
 
 logger = logging.getLogger(__name__)
